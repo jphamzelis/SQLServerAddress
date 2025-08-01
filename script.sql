@@ -5,13 +5,72 @@ CONTRACT_ID				LERETAContract
 ,CUST_ID				CustomerNumber
 ,TAX_SERVICE_TYPE		ServiceType
 ,TAX_ID					ParcelNumber
-,CAST(NULLIF(IIF(ISNULL(LEGAL_DESCRIPTION,'') = '','',TRIM(LEGAL_DESCRIPTION) + ' ') + ISNULL(LEGAL_FREEFORM,''),'') AS VARCHAR(MAX))	ParcelLegalDescription --LEGAL_DESCRIPTION
-,CAST(NULLIF(IIF(ISNULL(SITUS_ADDRESS,'') = '','',TRIM(SITUS_ADDRESS)) + IIF(ISNULL(SITUS_CITY,'') = '','',', '+TRIM(SITUS_CITY)) + IIF(ISNULL(SITUS_STATE,'')='','',', '+TRIM(SITUS_STATE)) + ' ' + ISNULL(IIF(LEN(SITUS_ZIP) > 5,LEFT(SITUS_ZIP,5) + '-' + RIGHT(SITUS_ZIP,5),SITUS_ZIP),''),'') AS VARCHAR(175))	ParcelPropertyAddress
+-- Improved ParcelLegalDescription: Clean multiple spaces, trim, handle commas
+,CAST(NULLIF(
+    LTRIM(RTRIM(
+        REPLACE(
+            REPLACE(
+                REPLACE(
+                    IIF(ISNULL(LEGAL_DESCRIPTION,'') = '','',TRIM(LEGAL_DESCRIPTION) + ' ') + ISNULL(LEGAL_FREEFORM,''),
+                    '  ', ' '  -- Replace double spaces with single space
+                ),
+                '   ', ' '  -- Replace triple spaces with single space
+            ),
+            '    ', ' '  -- Replace quad spaces with single space
+        )
+    ))
+,'') AS VARCHAR(MAX))	ParcelLegalDescription --LEGAL_DESCRIPTION
+-- Improved ParcelPropertyAddress: Clean spaces and comma formatting
+,CAST(NULLIF(
+    LTRIM(RTRIM(
+        REPLACE(
+            REPLACE(
+                REPLACE(
+                    REPLACE(
+                        IIF(ISNULL(SITUS_ADDRESS,'') = '','',TRIM(SITUS_ADDRESS)) + 
+                        IIF(ISNULL(SITUS_CITY,'') = '','',', '+TRIM(SITUS_CITY)) + 
+                        IIF(ISNULL(SITUS_STATE,'')='','',', '+TRIM(SITUS_STATE)) + 
+                        ' ' + ISNULL(IIF(LEN(SITUS_ZIP) > 5,LEFT(SITUS_ZIP,5) + '-' + RIGHT(SITUS_ZIP,5),SITUS_ZIP),''),
+                        '  ', ' '   -- Replace double spaces
+                    ),
+                    ', ,', ','  -- Remove space between consecutive commas
+                ),
+                ',,', ','   -- Replace double commas
+            ),
+            ', ,', ','  -- Clean up any remaining comma-space-comma patterns
+        )
+    ))
+,'') AS VARCHAR(175))	ParcelPropertyAddress
 ,AGENCY_ID				AgencyNumber
 ,AGENCY_NAME			AgencyName
-,CAST(NULLIF(REPLACE(IIF(ISNULL(SITUS_ADDR_1,'') = '','',TRIM(SITUS_ADDR_1) + ', ') + IIF(ISNULL(SITUS_ADDR_2,'') = '','',TRIM(SITUS_ADDR_2) + ', ') + ISNULL(TRIM(SITUS_ADDR_3),''),',,',','),'') AS VARCHAR(325)) AgencyAddress
+-- Improved AgencyAddress: Comprehensive cleaning of spaces and commas
+,CAST(NULLIF(
+    LTRIM(RTRIM(
+        REPLACE(
+            REPLACE(
+                REPLACE(
+                    REPLACE(
+                        REPLACE(
+                            REPLACE(
+                                IIF(ISNULL(SITUS_ADDR_1,'') = '','',TRIM(SITUS_ADDR_1) + ', ') + 
+                                IIF(ISNULL(SITUS_ADDR_2,'') = '','',TRIM(SITUS_ADDR_2) + ', ') + 
+                                ISNULL(TRIM(SITUS_ADDR_3),''),
+                                '  ', ' '      -- Replace double spaces
+                            ),
+                            '   ', ' '      -- Replace triple spaces
+                        ),
+                        '    ', ' '      -- Replace quad spaces
+                    ),
+                    ', ,', ','       -- Remove space between consecutive commas
+                ),
+                ',,', ','        -- Replace double commas
+            ),
+            ', ,', ','       -- Clean up any remaining comma-space-comma patterns
+        )
+    ))
+,'') AS VARCHAR(325)) AgencyAddress
 ,PAYEE_ID				ClientPayeeNumber
-,PAYEE_NAME				ClientPayeeName
+,PAYEE_NAME			ClientPayeeName
 ,TAX_YEAR				AgencyTaxYear
 ,INSTALLMENT			AgencyInstallment
 ,NO_OF_INSTALLS			AgencyInstallmentTotal
