@@ -5,45 +5,59 @@ CONTRACT_ID				LERETAContract
 ,CUST_ID				CustomerNumber
 ,TAX_SERVICE_TYPE		ServiceType
 ,TAX_ID					ParcelNumber
--- Improved ParcelLegalDescription: Clean multiple spaces, trim, handle commas
-,CAST(NULLIF(
-    LTRIM(RTRIM(
-        REPLACE(
-            REPLACE(
-                REPLACE(
-                    IIF(ISNULL(LEGAL_DESCRIPTION,'') = '','',TRIM(LEGAL_DESCRIPTION) + ' ') + ISNULL(LEGAL_FREEFORM,''),
-                    '  ', ' '  -- Replace double spaces with single space
-                ),
-                '   ', ' '  -- Replace triple spaces with single space
-            ),
-            '    ', ' '  -- Replace quad spaces with single space
-        )
-    ))
-,'') AS VARCHAR(MAX))	ParcelLegalDescription --LEGAL_DESCRIPTION
--- Improved ParcelPropertyAddress: Clean spaces and comma formatting
+-- Enhanced ParcelLegalDescription: Properly handle null/blank fields without unnecessary commas
 ,CAST(NULLIF(
     LTRIM(RTRIM(
         REPLACE(
             REPLACE(
                 REPLACE(
                     REPLACE(
-                        IIF(ISNULL(SITUS_ADDRESS,'') = '','',TRIM(SITUS_ADDRESS)) + 
-                        IIF(ISNULL(SITUS_CITY,'') = '','',', '+TRIM(SITUS_CITY)) + 
-                        IIF(ISNULL(SITUS_STATE,'')='','',', '+TRIM(SITUS_STATE)) + 
-                        ' ' + ISNULL(IIF(LEN(SITUS_ZIP) > 5,LEFT(SITUS_ZIP,5) + '-' + RIGHT(SITUS_ZIP,5),SITUS_ZIP),''),
-                        '  ', ' '   -- Replace double spaces
+                        REPLACE(
+                            CONCAT_WS(', ',
+                                NULLIF(TRIM(ISNULL(LEGAL_DESCRIPTION,'')), ''),
+                                NULLIF(TRIM(ISNULL(LEGAL_FREEFORM,'')), '')
+                            ),
+                            '  ', ' '  -- Replace double spaces with single space
+                        ),
+                        '   ', ' '  -- Replace triple spaces with single space
                     ),
-                    ', ,', ','  -- Remove space between consecutive commas
+                    '    ', ' '  -- Replace quad spaces with single space
                 ),
-                ',,', ','   -- Replace double commas
+                ', ,', ','  -- Clean up comma-space-comma patterns
             ),
-            ', ,', ','  -- Clean up any remaining comma-space-comma patterns
+            ',,', ','   -- Replace double commas
+        )
+    ))
+,'') AS VARCHAR(MAX))	ParcelLegalDescription --LEGAL_DESCRIPTION
+-- Enhanced ParcelPropertyAddress: Properly handle null/blank fields without unnecessary commas
+,CAST(NULLIF(
+    LTRIM(RTRIM(
+        REPLACE(
+            REPLACE(
+                REPLACE(
+                    REPLACE(
+                        REPLACE(
+                            CONCAT_WS(', ',
+                                NULLIF(TRIM(ISNULL(SITUS_ADDRESS,'')), ''),
+                                NULLIF(TRIM(ISNULL(SITUS_CITY,'')), ''),
+                                NULLIF(TRIM(ISNULL(SITUS_STATE,'')), ''),
+                                NULLIF(TRIM(ISNULL(IIF(LEN(SITUS_ZIP) > 5,LEFT(SITUS_ZIP,5) + '-' + RIGHT(SITUS_ZIP,5),SITUS_ZIP),'')), '')
+                            ),
+                            '  ', ' '   -- Replace double spaces
+                        ),
+                        '   ', ' '   -- Replace triple spaces
+                    ),
+                    '    ', ' '   -- Replace quad spaces
+                ),
+                ', ,', ','    -- Remove space between consecutive commas
+            ),
+            ',,', ','     -- Replace double commas
         )
     ))
 ,'') AS VARCHAR(175))	ParcelPropertyAddress
 ,AGENCY_ID				AgencyNumber
 ,AGENCY_NAME			AgencyName
--- Improved AgencyAddress: Comprehensive cleaning of spaces and commas
+-- Enhanced AgencyAddress: Properly handle null/blank fields without unnecessary commas
 ,CAST(NULLIF(
     LTRIM(RTRIM(
         REPLACE(
@@ -52,9 +66,11 @@ CONTRACT_ID				LERETAContract
                     REPLACE(
                         REPLACE(
                             REPLACE(
-                                IIF(ISNULL(SITUS_ADDR_1,'') = '','',TRIM(SITUS_ADDR_1) + ', ') + 
-                                IIF(ISNULL(SITUS_ADDR_2,'') = '','',TRIM(SITUS_ADDR_2) + ', ') + 
-                                ISNULL(TRIM(SITUS_ADDR_3),''),
+                                CONCAT_WS(', ',
+                                    NULLIF(TRIM(ISNULL(SITUS_ADDR_1,'')), ''),
+                                    NULLIF(TRIM(ISNULL(SITUS_ADDR_2,'')), ''),
+                                    NULLIF(TRIM(ISNULL(SITUS_ADDR_3,'')), '')
+                                ),
                                 '  ', ' '      -- Replace double spaces
                             ),
                             '   ', ' '      -- Replace triple spaces
